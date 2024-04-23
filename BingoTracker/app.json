@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "BingoTracker",
-    "slug": "BingoTracker",
+    "slug": "bingotracker",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -21,10 +21,17 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.samurup.bingotracker"
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "0b39837a-bc0a-4607-8fda-02ec7b971e8b"
+      }
+    },
+    "owner": "samurup"
   }
 }
