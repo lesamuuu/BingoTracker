@@ -1,19 +1,21 @@
-import { View, StyleSheet, TouchableOpacity, Alert, ScrollView } from "react-native";
+import { View, StyleSheet, TouchableOpacity, Alert, ScrollView, Text } from "react-native";
 import Ionicons from '@expo/vector-icons/Ionicons'
 import React, { useEffect, useState } from "react";
 import BallComponent from "../Components/Ball";
-import { fromHsv } from "react-native-color-picker";
-import { HsvColor } from "react-native-color-picker/dist/typeHelpers";
-import SettingsModal from "../Modals/settingsModal";
-import NewBallModal from "../Modals/newBallModal";
+import SettingsModal from "../Modals/SettingsModal";
+import NewBallModal from "../Modals/NewBallModal";
+import COLORS from "../Constants/Colors";
+import STRINGS from "../Constants/Strings";
 
 const HomeScreen = () => {
 
     const [balls, setBalls] = useState<number[]>([]);
     const [ballSize, setBallSize] = useState<number>(100);
 
-    const [ballHsvColor, setBallHsvColor] = useState<HsvColor>({ h: 225, s: 99, v: 99 });
-    const [ballHexColor, setBallHexColor] = useState<string>('#0341fc');
+    const [ballColor, setBallColor] = useState<string>(COLORS.defaultBall);
+
+    const [ballNumberColor, setBallNumberColor] = useState<string>(COLORS.defaultBackground);
+    const [backgroundColor, setBackgroundColor] = useState<string>(COLORS.defaultBackground);
 
     const [newNumber, setNewNumber] = useState<string>();
     const [isAddNumberEnabled, setIsAddNumberEnabled] = useState<boolean>(true);
@@ -21,15 +23,6 @@ const HomeScreen = () => {
 
     const [isSettingsModalVisible, setIsSettingsModalVisible] = useState(false);
     const [isNewBallModalVisible, setIsNewBallModalVisible] = useState(false);
-
-    useEffect(() => {
-        const newBalls: number[] = [];
-        for (let i = 0; i <= 90; i++) {
-            newBalls.push(i);
-        }
-
-        setBalls(newBalls);
-    }, []);
 
     const handleNewNumberChange = (newNumber: string) => {
         const numericValue = newNumber.replace(/[^0-9]/g, '');
@@ -51,20 +44,14 @@ const HomeScreen = () => {
         setIsNewBallModalVisible(false);
     }
 
-    const handleColorChange = (hsvColor: HsvColor) => {
-        const hexColor = fromHsv(hsvColor);
-        setBallHexColor(hexColor);
-        setBallHsvColor(hsvColor);
-    }
-
     const handleResetButton = () => {
         Alert.alert(
-            'Delete all balls',
-            'Are you sure you want to delete all the balls?',
+            STRINGS.Alerts.Reset.Title,
+            STRINGS.Alerts.Reset.Text,
             [
-                { text: 'Cancel', style: 'cancel' },
+                { text: STRINGS.Alerts.Generic.Cancel, style: 'cancel' },
                 {
-                    text: 'Delete',
+                    text: STRINGS.Alerts.Generic.Delete,
                     onPress: () => {
                         setBalls([]);
                     }
@@ -76,12 +63,12 @@ const HomeScreen = () => {
 
     const handleBallPress = (ballNumber: number) => {
         Alert.alert(
-            'Delete ball',
-            'Are you sure you want to delete this ball?',
+            STRINGS.Alerts.DeleteBall.Title,
+            STRINGS.Alerts.DeleteBall.Text,
             [
-                { text: 'Cancel', style: 'cancel' },
+                { text: STRINGS.Alerts.Generic.Cancel, style: 'cancel' },
                 {
-                    text: 'Delete',
+                    text: STRINGS.Alerts.Generic.Delete,
                     onPress: () => {
                         const updatedBalls = balls.filter(BallNumber => BallNumber != ballNumber);
                         setBalls(updatedBalls);
@@ -93,7 +80,7 @@ const HomeScreen = () => {
     }
 
     return (
-        <View style={styles.mainContainer}>
+        <View style={[styles.mainContainer, { backgroundColor: backgroundColor }]}>
             <View style={styles.topBarContainer}>
 
                 <TouchableOpacity onPress={handleResetButton}>
@@ -109,23 +96,39 @@ const HomeScreen = () => {
                 </TouchableOpacity>
             </View>
 
-            <ScrollView>
-                <View style={styles.ballsContainer}>
-                    {balls.map(ballNumber => (
-                        <BallComponent
-                            key={ballNumber}
-                            ballNumber={ballNumber}
-                            ballSize={ballSize}
-                            ballColor={ballHexColor}
-                            handleOnPress={() => handleBallPress(ballNumber)}
-                        />
-                    ))}
-                </View>
-            </ScrollView>
+            {balls.length > 0 ? (
+                <ScrollView>
+                    <View style={styles.ballsContainer}>
 
-            <SettingsModal 
-                ballHsvColor={ballHsvColor}
-                handleColorChange={handleColorChange}
+                        {balls.map(ballNumber => (
+                            <BallComponent
+                                key={ballNumber}
+                                ballNumber={ballNumber}
+                                ballNumberColor={ballNumberColor}
+                                ballSize={ballSize}
+                                ballColor={ballColor}
+                                handleOnPress={() => handleBallPress(ballNumber)}
+                            />
+                        ))}
+                    </View>
+                </ScrollView>
+
+            ) : (
+                <View style={styles.centeredView}>
+                    <Text>{STRINGS.HomeScreen.NoBalls}</Text>
+                    <Ionicons name="add-circle-outline" style={{ fontSize: 40, color: 'black' }} />
+                </View>
+            )}
+
+            <SettingsModal
+                ballColor={ballColor}
+                handleBallColorChange={setBallColor}
+
+                ballNumberColor={ballNumberColor}
+                handleBallNumberColorChange={setBallNumberColor}
+
+                backgroundColor={backgroundColor}
+                handleBackgroundColorChange={setBackgroundColor}
 
                 ballSize={ballSize}
                 setBallSize={setBallSize}
@@ -134,17 +137,17 @@ const HomeScreen = () => {
                 setModalVisible={setIsSettingsModalVisible}
             />
 
-            <NewBallModal 
+            <NewBallModal
                 isModalVisible={isNewBallModalVisible}
                 setModalVisible={setIsNewBallModalVisible}
-                
+
                 newNumber={newNumber}
                 handleNewNumberChange={handleNewNumberChange}
 
                 isAddNumberEnabled={isAddNumberEnabled}
                 handleAddNewBall={handleAddNewBall}
             />
-            
+
         </View>
     )
 
@@ -153,8 +156,8 @@ const HomeScreen = () => {
 const styles = StyleSheet.create({
     mainContainer: {
         flex: 1,
+        justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: 'red',
     },
     topBarContainer: {
         flexDirection: 'row',
@@ -166,6 +169,12 @@ const styles = StyleSheet.create({
         marginBottom: '3%',
         paddingHorizontal: '10%',
         backgroundColor: 'white',
+    },
+    centeredView: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     ballsContainer: {
         flexDirection: 'row',
