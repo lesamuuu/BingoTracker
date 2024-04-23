@@ -164,17 +164,20 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
 
-        height: '6%',
         width: '100%',
         marginBottom: '3%',
         paddingHorizontal: '10%',
+        paddingVertical: '2%',
         backgroundColor: 'white',
     },
     centeredView: {
         flex: 1,
-        flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
+        paddingHorizontal: '10%',
+
+        borderColor: 'red',
+        borderWidth: 1,
     },
     ballsContainer: {
         flexDirection: 'row',
