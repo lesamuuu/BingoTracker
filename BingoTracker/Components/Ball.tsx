@@ -5,9 +5,10 @@ interface BallProps {
     ballNumber: number;
     ballSize: number;
     ballColor: string;
+    ballNumberColor: string;
     handleOnPress: () => void;
 }
-function BallComponent({ ballNumber, ballSize = 100, ballColor, handleOnPress }: BallProps) {
+function BallComponent({ ballNumber, ballSize = 100, ballColor, ballNumberColor = 'white', handleOnPress }: BallProps) {
 
     const styles = StyleSheet.create({
         ball: {
@@ -20,7 +21,7 @@ function BallComponent({ ballNumber, ballSize = 100, ballColor, handleOnPress }:
             margin: 5,
         },
         text: {
-            color: 'white',
+            color: ballNumberColor,
             fontSize: ballSize/2,
         },
     });
