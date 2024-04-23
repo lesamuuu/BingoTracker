@@ -71,7 +71,7 @@ const styles = StyleSheet.create({
     },
     modalView: {
         width: '50%',
-        height: '50%',
+        height: '30%',
 
         backgroundColor: 'white',
         borderRadius: 20,
@@ -104,6 +104,11 @@ const styles = StyleSheet.create({
     },
     numberAlreadyExists: {
         backgroundColor: '#eb6767',
+        height: '20%',
+        width: '100%',
+        borderRadius: 25,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     button: {
         borderRadius: 20,
