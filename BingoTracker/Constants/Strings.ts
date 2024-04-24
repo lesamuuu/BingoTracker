@@ -1,9 +1,13 @@
 const STRINGS = {
     Generics: {
         Cancel: 'Cancelar',
+        Close: 'Cerrar',
     },
     HomeScreen: {
         NoBalls: 'No hay bolas en el tablero. Para añadir una, haz click en el icono: ',
+        TotalCalls: 'Llamadas totales',
+        CurrentCall: 'Llamada Actual',
+        PreviousCalls: 'Últimas 4 llamadas',
     },
     NewBallModal: {
         NumberAlreadyExists: 'Este número ya existe, no se puede volver a introducir',
@@ -11,8 +15,8 @@ const STRINGS = {
     },
     SettingsModal: {
         BallSize: 'Tamaño de las bolas',
-        AddBall: 'Añadir Bola',
 
+        Colors: 'Colores',
         BallColor: 'Color de las Bolas',
         NumberColor: 'Color del número',
     },
