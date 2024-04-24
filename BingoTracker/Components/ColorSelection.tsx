@@ -1,9 +1,29 @@
-import { View, TouchableOpacity, StyleSheet, Text } from "react-native";
+import { View, TouchableOpacity, StyleSheet, Text, ViewStyle } from "react-native";
+import SIZES from "../Constants/Sizes";
+import OptionsChangeableColors from "../Modals/Enums/OptionsChangeableColor";
+import { DeviceType } from "expo-device";
+import COLORS from "../Constants/Colors";
 
-function ColorSelection({ options, selectedOption, onSelectOption }) {
+interface ColorSelectionProps {
+    deviceType: DeviceType;
+    selectedOption: OptionsChangeableColors;
+    onSelectOption: (option: string) => void;
+    style?: ViewStyle;
+}
+
+function ColorSelection({ deviceType, selectedOption, onSelectOption, style } : ColorSelectionProps) {
+
+    const optionsChangableColors = Object.values(OptionsChangeableColors) as string[];
+
+    const dynamicStyles = StyleSheet.create({
+        optionText: {
+            fontSize: deviceType === DeviceType.TABLET? SIZES.SettingsTextTablet : SIZES.SettingsTextPhone,
+        },
+    });
+
     return (
-        <View>
-            {options.map(option => (
+        <View style={style}>
+            {optionsChangableColors.map(option => (
                 <TouchableOpacity
                     key={option}
                     style={[
@@ -12,7 +32,7 @@ function ColorSelection({ options, selectedOption, onSelectOption }) {
                     ]}
                     onPress={() => onSelectOption(option)}
                 >
-                    <Text style={styles.optionText}>{option}</Text>
+                    <Text style={dynamicStyles.optionText}>{option}</Text>
                 </TouchableOpacity>
             ))}
         </View>
@@ -21,16 +41,13 @@ function ColorSelection({ options, selectedOption, onSelectOption }) {
 
 const styles = StyleSheet.create({
     optionButton: {
-        padding: 10,
-        marginBottom: 10,
-        backgroundColor: '#eee',
+        padding: '2%',
+        marginVertical: '1%',
+        backgroundColor: COLORS.ColorSelectionUnSelected,
         borderRadius: 5,
     },
     selectedOptionButton: {
-        backgroundColor: 'lightblue',
-    },
-    optionText: {
-        fontSize: 16,
+        backgroundColor: COLORS.ColorSelectionSelected,
     },
 });
 
