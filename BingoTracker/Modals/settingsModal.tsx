@@ -5,10 +5,13 @@ import { HsvColor } from "react-native-color-picker/dist/typeHelpers";
 import STRINGS from "../Constants/Strings";
 import Divider from "../Components/Divider";
 import { useEffect, useState } from "react";
-import _ from 'lodash'
-
+import ColorSelection from "../Components/ColorSelection";
+import OptionsChangeableColors from "./Enums/OptionsChangeableColor";
+import { DeviceType } from "expo-device";
 
 interface SettingsModalProps {
+    deviceType: DeviceType;
+
     isModalVisible: boolean;
     setModalVisible: (value: boolean) => void;
 
@@ -25,52 +28,9 @@ interface SettingsModalProps {
     handleBackgroundColorChange: (hexColor: string) => void;
 }
 
-const ColorSelection = ({ options, selectedOption, onSelectOption }) => {
-    return (
-        <View>
-            {options.map(option => (
-                <TouchableOpacity
-                    key={option}
-                    style={[
-                        styles1.optionButton,
-                        option === selectedOption && styles1.selectedOptionButton
-                    ]}
-                    onPress={() => onSelectOption(option)}
-                >
-                    <Text style={styles1.optionText}>{option}</Text>
-                </TouchableOpacity>
-            ))}
-        </View>
-    );
-};
-
-const styles1 = StyleSheet.create({
-    container: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    optionButton: {
-        padding: 10,
-        marginBottom: 10,
-        backgroundColor: '#eee',
-        borderRadius: 5,
-    },
-    selectedOptionButton: {
-        backgroundColor: 'lightblue',
-    },
-    optionText: {
-        fontSize: 16,
-    },
-});
-
-enum OptionsChangableColors {
-    BallColor = 'Ball Color',
-    NumberColor = 'Number Color',
-    BackgroundColor = 'Background Color',
-}
-
 function SettingsModal({
+    deviceType,
+
     isModalVisible,
     setModalVisible,
 
@@ -88,25 +48,25 @@ function SettingsModal({
 
 }: SettingsModalProps) {
 
-    const [selectedOption, setSelectedOption] = useState<OptionsChangableColors>(OptionsChangableColors.BallColor);
+    const [selectedOption, setSelectedOption] = useState<OptionsChangeableColors>(OptionsChangeableColors.BallColor);
     const [selectedOptionValue, setSelectedOptionValue] = useState<HsvColor>(toHsv(ballColor));
 
+    const optionsChangableColors = Object.values(OptionsChangeableColors) as string[];
 
-    const optionsChangableColors = ['Ball Color', 'Number Color', 'Background Color'];
-
-    const handleOptionSelection = (option: OptionsChangableColors) => {
+    // Handle ColorSelection option
+    const handleOptionSelection = (option: OptionsChangeableColors) => {
         switch (option) {
-            case OptionsChangableColors.BallColor:
+            case OptionsChangeableColors.BallColor:
                 setSelectedOptionValue(toHsv(ballColor));
                 setSelectedOption(option);
                 break;
 
-            case OptionsChangableColors.NumberColor:
+            case OptionsChangeableColors.NumberColor:
                 setSelectedOptionValue(toHsv(ballNumberColor));
                 setSelectedOption(option);
                 break;
 
-            case OptionsChangableColors.BackgroundColor:
+            case OptionsChangeableColors.BackgroundColor:
                 setSelectedOptionValue(toHsv(backgroundColor));
                 setSelectedOption(option);
                 break;
@@ -116,26 +76,20 @@ function SettingsModal({
         }
     }
 
-    /*
-    const handleNumberColorChangeDebounced = _.debounce((color) => {
-        handleBallNumberColorChange(color);
-    }, 1000); // Adjust the debounce delay as needed
-    */
-
-    useEffect( () => {
-
+    // Handle ColorSelection option
+    useEffect(() => {
         const hexColor = fromHsv(selectedOptionValue);
 
         switch (selectedOption) {
-            case OptionsChangableColors.BallColor:
+            case OptionsChangeableColors.BallColor:
                 handleBallColorChange(hexColor)
                 break;
 
-            case OptionsChangableColors.NumberColor:
+            case OptionsChangeableColors.NumberColor:
                 handleBallNumberColorChange(hexColor)
                 break;
 
-            case OptionsChangableColors.BackgroundColor:
+            case OptionsChangeableColors.BackgroundColor:
                 handleBackgroundColorChange(hexColor)
                 break;
 
@@ -162,11 +116,11 @@ function SettingsModal({
 
                         <Slider
                             style={{ width: '100%' }}
-                            minimumValue={60}
-                            lowerLimit={60}
+                            minimumValue={40}
+                            lowerLimit={40}
                             maximumValue={150}
                             upperLimit={150}
-                            step={10}
+                            step={5}
                             value={ballSize}
                             onValueChange={setBallSize}
                         />
@@ -175,7 +129,9 @@ function SettingsModal({
                     <Divider color="grey" />
 
                     <View style={[styles.modalSection, styles.modalSectionColorPicker]}>
-                        <Text style={styles.sectionTitle}>COLORS</Text>
+                        <View style={{ alignItems: 'center' }}>
+                            <Text style={styles.sectionTitle}>{STRINGS.SettingsModal.Colors}</Text>
+                        </View>
 
                         <ColorSelection
                             options={optionsChangableColors}
@@ -185,7 +141,6 @@ function SettingsModal({
 
                         <TriangleColorPicker
                             onColorChange={color => setSelectedOptionValue(color)}
-                            //onColorSelected={color => setSelectedOptionValue(toHsv(color))}
                             style={{ flex: 1 }}
                             hideSliders
                             color={selectedOptionValue}
@@ -195,7 +150,7 @@ function SettingsModal({
                     <TouchableOpacity
                         onPress={() => setModalVisible(false)}
                         style={styles.button}>
-                        <Text style={styles.textStyle}>{STRINGS.Generics.Cancel}</Text>
+                        <Text style={styles.textStyle}>{STRINGS.Generics.Close}</Text>
                     </TouchableOpacity>
                 </View>
             </View>
@@ -215,7 +170,7 @@ const styles = StyleSheet.create({
 
         backgroundColor: 'white',
         borderRadius: 20,
-        padding: 35,
+        padding: '3%',
         alignItems: 'center',
         shadowColor: '#000',
         shadowOffset: {
@@ -238,13 +193,13 @@ const styles = StyleSheet.create({
         width: '100%',
     },
     modalSectionColorPicker: {
+        flex: 1,
         alignItems: 'stretch',
-        height: '80%',
     },
     button: {
         borderRadius: 20,
-        padding: 10,
-        elevation: 2,
+        padding: '2%',
+        marginTop: '1%',
         width: '50%',
         alignItems: 'center',
         justifyContent: 'center',
@@ -259,7 +214,7 @@ const styles = StyleSheet.create({
     sectionTitle: {
         fontSize: 20,
         fontWeight: 'bold',
-        marginBottom: 10,
+        marginBottom: '2%',
     },
 });
 
