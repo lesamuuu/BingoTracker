@@ -2,7 +2,7 @@ import { View, StyleSheet, TouchableOpacity, Alert, ScrollView } from "react-nat
 import Ionicons from '@expo/vector-icons/Ionicons'
 import React, { useEffect, useState } from "react";
 import BallComponent from "../Components/Ball";
-import SettingsModal from "../Modals/SettingsModal";
+import SettingsModal from "../Modals/settingsModal";
 import COLORS from "../Constants/Colors";
 import STRINGS from "../Constants/Strings";
 import * as Device from 'expo-device';
@@ -19,6 +19,7 @@ interface BallProps {
 const HomeScreen = () => {
 
     const [deviceType, setDeviceType] = useState<Device.DeviceType>();
+
     const [balls, setBalls] = useState<BallProps[]>([]);
 
     const [selectedBalls, setSelectedBalls] = useState<number[]>([]);
@@ -48,6 +49,7 @@ const HomeScreen = () => {
 
         const setLandsacepeScreenOrientation = async () => {
             await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
+
         };
 
         if (deviceType === Device.DeviceType.PHONE) {
@@ -146,7 +148,7 @@ const HomeScreen = () => {
 
             <SettingsModal
                 deviceType={deviceType}
-
+                
                 ballColor={ballColor}
                 handleBallColorChange={setBallColor}
 

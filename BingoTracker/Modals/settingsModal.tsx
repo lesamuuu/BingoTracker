@@ -1,6 +1,6 @@
 import Slider from "@react-native-community/slider";
 import { Modal, View, TouchableOpacity, StyleSheet, Text } from "react-native";
-import { ColorPicker, TriangleColorPicker, fromHsv, toHsv } from "react-native-color-picker";
+import { TriangleColorPicker, fromHsv, toHsv } from "react-native-color-picker";
 import { HsvColor } from "react-native-color-picker/dist/typeHelpers";
 import STRINGS from "../Constants/Strings";
 import Divider from "../Components/Divider";
@@ -8,6 +8,9 @@ import { useEffect, useState } from "react";
 import ColorSelection from "../Components/ColorSelection";
 import OptionsChangeableColors from "./Enums/OptionsChangeableColor";
 import { DeviceType } from "expo-device";
+import SIZES from "../Constants/Sizes";
+import COLORS from "../Constants/Colors";
+import { getOrientationAsync, Orientation, addOrientationChangeListener, removeOrientationChangeListener } from "expo-screen-orientation";
 
 interface SettingsModalProps {
     deviceType: DeviceType;
@@ -51,7 +54,28 @@ function SettingsModal({
     const [selectedOption, setSelectedOption] = useState<OptionsChangeableColors>(OptionsChangeableColors.BallColor);
     const [selectedOptionValue, setSelectedOptionValue] = useState<HsvColor>(toHsv(ballColor));
 
-    const optionsChangableColors = Object.values(OptionsChangeableColors) as string[];
+    const [screenOrientation, setScreenOrientation] = useState<Orientation>();
+
+    const [modalViewHeight, setModalViewHeight] = useState<number>(0);
+    const [sliderSectionHeight, setSliderSectionHeight] = useState<number>(0);
+    const [closeButtonHeight, setCloseButtonHeight] = useState<number>(0);
+    const [colorPickerViewHeight, setColorPickerViewHeight] = useState<number>(0);
+
+    // Handle orientation change
+    useEffect(() => {
+        const handleOrientationChange = async () => {
+            const orientation = await getOrientationAsync();
+            setScreenOrientation(orientation);
+        };
+
+        const listener = addOrientationChangeListener(handleOrientationChange);
+
+        handleOrientationChange();
+
+        return () => {
+            removeOrientationChangeListener(listener);
+        };
+    }, []);
 
     // Handle ColorSelection option
     const handleOptionSelection = (option: OptionsChangeableColors) => {
@@ -98,64 +122,142 @@ function SettingsModal({
         }
     }, [selectedOptionValue])
 
+    // Function to handle layout event for modalView
+    const handleModalViewLayout = (event) => {
+        const { height } = event.nativeEvent.layout;
+        setModalViewHeight(height);
+    };
+
+    // Function to handle layout event for modalView
+    const handleSliderSectionLayout = (event) => {
+        const { height } = event.nativeEvent.layout;
+        setSliderSectionHeight(height);
+    };
+
+    // Function to handle layout event for TouchableOpacity
+    const handleCloseButtonLayout = (event) => {
+        const { height } = event.nativeEvent.layout;
+        setCloseButtonHeight(height);
+    };
+
+    useEffect(() => {
+        // Calculate the height of the problematic view
+        const calculatedProblematicHeight = modalViewHeight - sliderSectionHeight - closeButtonHeight;
+        console.log('Modal: ', modalViewHeight, 'Slider: ', sliderSectionHeight, 'Button: ', closeButtonHeight, 'Problem: ', calculatedProblematicHeight);
+        setColorPickerViewHeight(calculatedProblematicHeight);
+    }, [modalViewHeight, sliderSectionHeight, closeButtonHeight]);
+
+    const dynamicStyles = StyleSheet.create({
+        modalViewSize: {
+            width: isVerticalOrientation(screenOrientation) ? '50%' : '70%',
+            height: isVerticalOrientation(screenOrientation) ? '50%' : '80%',
+
+        },
+        modalSectionsContainer: {
+            width: '100%',
+            height: isVerticalOrientation(screenOrientation) ? 'auto' : '100%',
+            flexDirection: isVerticalOrientation(screenOrientation) ? 'column' : 'row',
+        },
+        modalSectionSize: {
+            width: isVerticalOrientation(screenOrientation) ? '100%' : '50%',
+        },
+
+        textStyle: {
+            color: 'white',
+            fontWeight: 'bold',
+            textAlign: 'center',
+            fontSize: deviceType === DeviceType.TABLET ? SIZES.SettingsSectionTitleTablet : SIZES.SettingsSectionTitlePhone,
+        },
+        sectionTitle: {
+            fontSize: deviceType === DeviceType.TABLET ? SIZES.SettingsSectionTitleTablet : SIZES.SettingsSectionTitlePhone,
+            fontWeight: 'bold',
+            marginBottom: '2%',
+        },
+    });
+
     return (
         <Modal
             animationType="slide"
             transparent={true}
             visible={isModalVisible}
+            supportedOrientations={['portrait', 'landscape']}
             onRequestClose={() => {
                 setModalVisible(false);
             }}
         >
             <View style={styles.centeredView}>
+                <View style={[styles.modalView, dynamicStyles.modalViewSize]} onLayout={handleModalViewLayout}>
 
-                <View style={styles.modalView}>
+                    <View style={dynamicStyles.modalSectionsContainer}>
 
-                    <View style={styles.modalSection}>
-                        <Text style={styles.sectionTitle}>{STRINGS.SettingsModal.BallSize}: {ballSize}</Text>
+                        <View style={[styles.modalSection, dynamicStyles.modalSectionSize]} onLayout={handleSliderSectionLayout}>
+                            <Text style={dynamicStyles.sectionTitle}>{STRINGS.SettingsModal.BallSize}: {ballSize}</Text>
+                            <Slider
+                                style={{ width: '100%' }}
+                                minimumValue={40}
+                                lowerLimit={40}
+                                maximumValue={150}
+                                upperLimit={150}
+                                step={5}
+                                value={ballSize}
+                                onValueChange={setBallSize}
+                            />
 
-                        <Slider
-                            style={{ width: '100%' }}
-                            minimumValue={40}
-                            lowerLimit={40}
-                            maximumValue={150}
-                            upperLimit={150}
-                            step={5}
-                            value={ballSize}
-                            onValueChange={setBallSize}
-                        />
-                    </View>
-
-                    <Divider color="grey" />
-
-                    <View style={[styles.modalSection, styles.modalSectionColorPicker]}>
-                        <View style={{ alignItems: 'center' }}>
-                            <Text style={styles.sectionTitle}>{STRINGS.SettingsModal.Colors}</Text>
+                            {!isVerticalOrientation(screenOrientation) && (
+                                <TouchableOpacity
+                                    onPress={() => setModalVisible(false)}
+                                    style={styles.button}>
+                                    <Text style={dynamicStyles.textStyle}>{STRINGS.Generics.Close}</Text>
+                                </TouchableOpacity>
+                            )}
                         </View>
 
-                        <ColorSelection
-                            options={optionsChangableColors}
-                            onSelectOption={handleOptionSelection}
-                            selectedOption={selectedOption}
-                        />
+                        <Divider color="grey" orientation={isVerticalOrientation(screenOrientation) ? 'horizontal' : 'vertical'} />
 
-                        <TriangleColorPicker
-                            onColorChange={color => setSelectedOptionValue(color)}
-                            style={{ flex: 1 }}
-                            hideSliders
-                            color={selectedOptionValue}
-                        />
+                        <View style={[styles.modalSection, dynamicStyles.modalSectionSize,
+                        { borderColor: 'green', borderWidth: 1 }]}>
+                            <View style={{ alignItems: 'center' }}>
+                                <Text style={dynamicStyles.sectionTitle}>{STRINGS.SettingsModal.Colors}</Text>
+                            </View>
+
+                            <ColorSelection
+                                style={{ width: '100%', height: 'auto' }}
+                                deviceType={deviceType}
+                                onSelectOption={handleOptionSelection}
+                                selectedOption={selectedOption}
+                            />
+
+                            <View style={{ flex: 1, width: '100%', borderWidth: 1, flexDirection: 'row'}}>
+                                <Divider color="red" orientation="vertical" />
+                                <TriangleColorPicker
+                                    onColorChange={color => setSelectedOptionValue(color)}
+                                    style={{ flex: 1, width: '100%', height:'100%' }}
+                                    hideSliders
+                                    color={selectedOptionValue}
+                                />
+                            </View>
+
+                        </View>
                     </View>
 
-                    <TouchableOpacity
-                        onPress={() => setModalVisible(false)}
-                        style={styles.button}>
-                        <Text style={styles.textStyle}>{STRINGS.Generics.Close}</Text>
-                    </TouchableOpacity>
+                    {isVerticalOrientation(screenOrientation) && (
+                        <TouchableOpacity
+                            onPress={() => setModalVisible(false)}
+                            style={styles.button}
+                            onLayout={handleCloseButtonLayout}
+                        >
+                            <Text style={dynamicStyles.textStyle}>{STRINGS.Generics.Close}</Text>
+                        </TouchableOpacity>
+                    )}
+
                 </View>
             </View>
         </Modal>
     )
+}
+
+function isVerticalOrientation(orientation: Orientation) {
+    return (orientation === Orientation.PORTRAIT_UP || orientation === Orientation.PORTRAIT_DOWN);
 }
 
 const styles = StyleSheet.create({
@@ -165,14 +267,11 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     modalView: {
-        width: '50%',
-        height: '50%',
-
         backgroundColor: 'white',
         borderRadius: 20,
         padding: '3%',
         alignItems: 'center',
-        shadowColor: '#000',
+        shadowColor: COLORS.Shadow,
         shadowOffset: {
             width: 0,
             height: 2
@@ -188,7 +287,7 @@ const styles = StyleSheet.create({
 
     },
     modalSection: {
-        justifyContent: 'center',
+        justifyContent: 'space-between',
         alignItems: 'center',
         width: '100%',
     },
@@ -203,18 +302,7 @@ const styles = StyleSheet.create({
         width: '50%',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#2196F3',
-    },
-    textStyle: {
-        color: 'white',
-        fontWeight: 'bold',
-        textAlign: 'center',
-        fontSize: 20
-    },
-    sectionTitle: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        marginBottom: '2%',
+        backgroundColor: COLORS.ModalButton,
     },
 });
 
