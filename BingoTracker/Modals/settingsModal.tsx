@@ -53,13 +53,7 @@ function SettingsModal({
 
     const [selectedOption, setSelectedOption] = useState<OptionsChangeableColors>(OptionsChangeableColors.BallColor);
     const [selectedOptionValue, setSelectedOptionValue] = useState<HsvColor>(toHsv(ballColor));
-
     const [screenOrientation, setScreenOrientation] = useState<Orientation>();
-
-    const [modalViewHeight, setModalViewHeight] = useState<number>(0);
-    const [sliderSectionHeight, setSliderSectionHeight] = useState<number>(0);
-    const [closeButtonHeight, setCloseButtonHeight] = useState<number>(0);
-    const [colorPickerViewHeight, setColorPickerViewHeight] = useState<number>(0);
 
     // Handle orientation change
     useEffect(() => {
@@ -122,46 +116,17 @@ function SettingsModal({
         }
     }, [selectedOptionValue])
 
-    // Function to handle layout event for modalView
-    const handleModalViewLayout = (event) => {
-        const { height } = event.nativeEvent.layout;
-        setModalViewHeight(height);
-    };
-
-    // Function to handle layout event for modalView
-    const handleSliderSectionLayout = (event) => {
-        const { height } = event.nativeEvent.layout;
-        setSliderSectionHeight(height);
-    };
-
-    // Function to handle layout event for TouchableOpacity
-    const handleCloseButtonLayout = (event) => {
-        const { height } = event.nativeEvent.layout;
-        setCloseButtonHeight(height);
-    };
-
-    useEffect(() => {
-        // Calculate the height of the problematic view
-        const calculatedProblematicHeight = modalViewHeight - sliderSectionHeight - closeButtonHeight;
-        console.log('Modal: ', modalViewHeight, 'Slider: ', sliderSectionHeight, 'Button: ', closeButtonHeight, 'Problem: ', calculatedProblematicHeight);
-        setColorPickerViewHeight(calculatedProblematicHeight);
-    }, [modalViewHeight, sliderSectionHeight, closeButtonHeight]);
 
     const dynamicStyles = StyleSheet.create({
         modalViewSize: {
             width: isVerticalOrientation(screenOrientation) ? '50%' : '70%',
             height: isVerticalOrientation(screenOrientation) ? '50%' : '80%',
-
-        },
-        modalSectionsContainer: {
-            width: '100%',
-            height: isVerticalOrientation(screenOrientation) ? 'auto' : '100%',
             flexDirection: isVerticalOrientation(screenOrientation) ? 'column' : 'row',
         },
         modalSectionSize: {
+            height: isVerticalOrientation(screenOrientation) ? 'auto' : '100%',
             width: isVerticalOrientation(screenOrientation) ? '100%' : '50%',
         },
-
         textStyle: {
             color: 'white',
             fontWeight: 'bold',
@@ -186,70 +151,64 @@ function SettingsModal({
             }}
         >
             <View style={styles.centeredView}>
-                <View style={[styles.modalView, dynamicStyles.modalViewSize]} onLayout={handleModalViewLayout}>
+                <View style={[styles.modalView, dynamicStyles.modalViewSize]}>
 
-                    <View style={dynamicStyles.modalSectionsContainer}>
+                    <View style={[styles.modalSection, dynamicStyles.modalSectionSize]}>
+                        <Text style={dynamicStyles.sectionTitle}>{STRINGS.SettingsModal.BallSize}: {ballSize}</Text>
 
-                        <View style={[styles.modalSection, dynamicStyles.modalSectionSize]} onLayout={handleSliderSectionLayout}>
-                            <Text style={dynamicStyles.sectionTitle}>{STRINGS.SettingsModal.BallSize}: {ballSize}</Text>
-                            <Slider
-                                style={{ width: '100%' }}
-                                minimumValue={40}
-                                lowerLimit={40}
-                                maximumValue={150}
-                                upperLimit={150}
-                                step={5}
-                                value={ballSize}
-                                onValueChange={setBallSize}
-                            />
+                        <Slider
+                            style={{ width: '100%' }}
+                            minimumValue={40}
+                            lowerLimit={40}
+                            maximumValue={150}
+                            upperLimit={150}
+                            step={5}
+                            value={ballSize}
+                            onValueChange={setBallSize}
+                        />
 
-                            {!isVerticalOrientation(screenOrientation) && (
-                                <TouchableOpacity
-                                    onPress={() => setModalVisible(false)}
-                                    style={styles.button}>
-                                    <Text style={dynamicStyles.textStyle}>{STRINGS.Generics.Close}</Text>
-                                </TouchableOpacity>
-                            )}
+                        {!isVerticalOrientation(screenOrientation) && (
+                            <TouchableOpacity
+                                onPress={() => setModalVisible(false)}
+                                style={styles.button}>
+                                <Text style={dynamicStyles.textStyle}>{STRINGS.Generics.Close}</Text>
+                            </TouchableOpacity>
+                        )}
+                    </View>
+
+                    <Divider dividerStyle={{ marginHorizontal: '1%' }} color="grey" orientation={isVerticalOrientation(screenOrientation) ? 'horizontal' : 'vertical'} />
+
+                    <View style={[styles.modalSection, dynamicStyles.modalSectionSize, { flexGrow: 1 }]}>
+                        <View style={{ alignItems: 'center' }}>
+                            <Text style={dynamicStyles.sectionTitle}>{STRINGS.SettingsModal.Colors}</Text>
                         </View>
 
-                        <Divider color="grey" orientation={isVerticalOrientation(screenOrientation) ? 'horizontal' : 'vertical'} />
+                        <ColorSelection
+                            style={{ width: '100%' }}
+                            deviceType={deviceType}
+                            onSelectOption={handleOptionSelection}
+                            selectedOption={selectedOption}
+                        />
 
-                        <View style={[styles.modalSection, dynamicStyles.modalSectionSize,
-                        { borderColor: 'green', borderWidth: 1 }]}>
-                            <View style={{ alignItems: 'center' }}>
-                                <Text style={dynamicStyles.sectionTitle}>{STRINGS.SettingsModal.Colors}</Text>
-                            </View>
-
-                            <ColorSelection
-                                style={{ width: '100%', height: 'auto' }}
-                                deviceType={deviceType}
-                                onSelectOption={handleOptionSelection}
-                                selectedOption={selectedOption}
+                        <View style={{ flexGrow: 1, width: '100%' }}>
+                            <TriangleColorPicker
+                                onColorChange={color => setSelectedOptionValue(color)}
+                                style={{ flex: 1 }}
+                                hideSliders
+                                color={selectedOptionValue}
                             />
-
-                            <View style={{ flex: 1, width: '100%', borderWidth: 1, flexDirection: 'row'}}>
-                                <Divider color="red" orientation="vertical" />
-                                <TriangleColorPicker
-                                    onColorChange={color => setSelectedOptionValue(color)}
-                                    style={{ flex: 1, width: '100%', height:'100%' }}
-                                    hideSliders
-                                    color={selectedOptionValue}
-                                />
-                            </View>
-
                         </View>
+
                     </View>
 
                     {isVerticalOrientation(screenOrientation) && (
                         <TouchableOpacity
                             onPress={() => setModalVisible(false)}
                             style={styles.button}
-                            onLayout={handleCloseButtonLayout}
                         >
                             <Text style={dynamicStyles.textStyle}>{STRINGS.Generics.Close}</Text>
                         </TouchableOpacity>
                     )}
-
                 </View>
             </View>
         </Modal>
@@ -283,17 +242,9 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignContent: 'center',
     },
-    modalHeader: {
-
-    },
     modalSection: {
-        justifyContent: 'space-between',
         alignItems: 'center',
-        width: '100%',
-    },
-    modalSectionColorPicker: {
-        flex: 1,
-        alignItems: 'stretch',
+        justifyContent: 'space-between',
     },
     button: {
         borderRadius: 20,
