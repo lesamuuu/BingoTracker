@@ -32,6 +32,12 @@
         "projectId": "0b39837a-bc0a-4607-8fda-02ec7b971e8b"
       }
     },
-    "owner": "samurup"
+    "owner": "samurup",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/0b39837a-bc0a-4607-8fda-02ec7b971e8b"
+    }
   }
 }

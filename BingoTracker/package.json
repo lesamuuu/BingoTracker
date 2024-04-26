@@ -15,6 +15,7 @@
     "expo-device": "^5.9.4",
     "expo-screen-orientation": "^6.4.1",
     "expo-status-bar": "~1.11.1",
+    "expo-updates": "~0.24.12",
     "react": "18.2.0",
     "react-native": "0.73.6",
     "react-native-color-picker": "^0.6.0",
