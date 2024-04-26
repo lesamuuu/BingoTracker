@@ -6,9 +6,9 @@ import SettingsModal from "../Modals/settingsModal";
 import COLORS from "../Constants/Colors";
 import STRINGS from "../Constants/Strings";
 import * as Device from 'expo-device';
-import * as ScreenOrientation from 'expo-screen-orientation';
 import RecentBalls from "../Components/RecentBalls";
 import SIZES from "../Constants/Sizes";
+import { Orientation, addOrientationChangeListener, getOrientationAsync, removeOrientationChangeListener } from "expo-screen-orientation";
 
 
 interface BallProps {
@@ -19,6 +19,7 @@ interface BallProps {
 const HomeScreen = () => {
 
     const [deviceType, setDeviceType] = useState<Device.DeviceType>();
+    const [screenOrientation, setScreenOrientation] = useState<Orientation>();
 
     const [balls, setBalls] = useState<BallProps[]>([]);
 
@@ -33,30 +34,33 @@ const HomeScreen = () => {
 
     const [isSettingsModalVisible, setIsSettingsModalVisible] = useState(false);
 
-    // Get device type
+    // Handle device type
     useEffect(() => {
         const getDeviceType = async () => {
-            const deviceType = await Device.getDeviceTypeAsync();
-            setDeviceType(deviceType);
+            const deviceTypeRetrieved = await Device.getDeviceTypeAsync();
+            setDeviceType(deviceTypeRetrieved);
+
+            setBallSize(deviceTypeRetrieved === Device.DeviceType.TABLET ? SIZES.BallSizeDefaultTablet : SIZES.BallSizeDefaultPhone);
         };
 
         getDeviceType();
     }, []);
 
-    // Handle Device Type
+    // Handle orientation change
     useEffect(() => {
-        setBallSize(deviceType === Device.DeviceType.TABLET ? SIZES.BallSizeDefaultTablet : SIZES.BallSizeDefaultPhone);
-
-        const setLandsacepeScreenOrientation = async () => {
-            await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
-
+        const handleOrientationChange = async () => {
+            const orientation = await getOrientationAsync();
+            setScreenOrientation(orientation);
         };
 
-        if (deviceType === Device.DeviceType.PHONE) {
-            setLandsacepeScreenOrientation();
-        }
+        const listener = addOrientationChangeListener(handleOrientationChange);
 
-    }, [deviceType]);
+        handleOrientationChange();
+
+        return () => {
+            removeOrientationChangeListener(listener);
+        };
+    }, []);
 
     // Reset Ball Status
     useEffect(() => {
@@ -138,6 +142,7 @@ const HomeScreen = () => {
 
 
             <RecentBalls
+                ScreenOrientation={screenOrientation}
                 deviceType={deviceType}
                 BallColor={ballColor}
                 BallNumberColor={ballNumberColor}
@@ -148,6 +153,7 @@ const HomeScreen = () => {
 
             <SettingsModal
                 deviceType={deviceType}
+                screenOrientation={screenOrientation}
                 
                 ballColor={ballColor}
                 handleBallColorChange={setBallColor}

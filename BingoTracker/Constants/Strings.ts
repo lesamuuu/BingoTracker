@@ -8,6 +8,10 @@ const STRINGS = {
         TotalCalls: 'Llamadas totales',
         CurrentCall: 'Llamada Actual',
         PreviousCalls: 'Últimas 4 llamadas',
+
+        TotalCallsShort: 'Totales',
+        CurrentCallShort: 'Actual',
+        PreviousCallsShort: 'Últimas 4',
     },
     NewBallModal: {
         NumberAlreadyExists: 'Este número ya existe, no se puede volver a introducir',

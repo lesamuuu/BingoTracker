@@ -4,16 +4,29 @@ import STRINGS from "../Constants/Strings";
 import SIZES from "../Constants/Sizes";
 import BallComponent from "./Ball";
 import { DeviceType } from "expo-device";
+import { Orientation } from "expo-screen-orientation";
+import { isVerticalOrientation } from "../Modals/settingsModal";
 
 interface RecentBallsProps {
     deviceType: DeviceType;
+    ScreenOrientation: Orientation;
     SelectedBalls: number[];
     BallSize: number;
     BallNumberColor: string;
     BallColor: string;
 }
 
-function RecentBalls({ deviceType, SelectedBalls, BallSize, BallNumberColor, BallColor }: RecentBallsProps) {
+function RecentBalls({ deviceType, ScreenOrientation, SelectedBalls, BallSize, BallNumberColor, BallColor }: RecentBallsProps) {
+
+    let totalCallsText = STRINGS.HomeScreen.TotalCalls;
+    let currentCallText = STRINGS.HomeScreen.CurrentCall;
+    let previousCallsText = STRINGS.HomeScreen.PreviousCalls;
+
+    if(isVerticalOrientation(ScreenOrientation) && deviceType === DeviceType.PHONE){
+        totalCallsText = STRINGS.HomeScreen.TotalCallsShort;
+        currentCallText = STRINGS.HomeScreen.CurrentCallShort;
+        previousCallsText = STRINGS.HomeScreen.PreviousCallsShort;
+    }
 
     const dynamicStyles = StyleSheet.create({
         recentBallTitle: {
@@ -27,7 +40,7 @@ function RecentBalls({ deviceType, SelectedBalls, BallSize, BallNumberColor, Bal
             <View style={styles.recentBallsContainer}>
 
                 <View style={styles.recentBallSection}>
-                    <Text style={dynamicStyles.recentBallTitle}>{STRINGS.HomeScreen.TotalCalls}</Text>
+                    <Text style={dynamicStyles.recentBallTitle}>{totalCallsText}</Text>
                     <BallComponent
                         key={'TotalCalls'}
                         ballNumber={SelectedBalls.length}
@@ -41,7 +54,7 @@ function RecentBalls({ deviceType, SelectedBalls, BallSize, BallNumberColor, Bal
 
 
                 <View style={styles.recentBallSection}>
-                    <Text style={dynamicStyles.recentBallTitle}>{STRINGS.HomeScreen.CurrentCall}</Text>
+                    <Text style={dynamicStyles.recentBallTitle}>{currentCallText}</Text>
                     <BallComponent
                         key={SelectedBalls[SelectedBalls.length - 1]}
                         ballNumber={SelectedBalls[SelectedBalls.length - 1]}
@@ -54,7 +67,7 @@ function RecentBalls({ deviceType, SelectedBalls, BallSize, BallNumberColor, Bal
                 </View>
 
                 <View style={styles.recentBallSection}>
-                    <Text style={dynamicStyles.recentBallTitle}>{STRINGS.HomeScreen.PreviousCalls}</Text>
+                    <Text style={dynamicStyles.recentBallTitle}>{previousCallsText}</Text>
 
                     <View style={{ flexDirection: 'row' }}>
                         {SelectedBalls.slice(-4).map(ballNumber => (

@@ -10,10 +10,12 @@ import OptionsChangeableColors from "./Enums/OptionsChangeableColor";
 import { DeviceType } from "expo-device";
 import SIZES from "../Constants/Sizes";
 import COLORS from "../Constants/Colors";
-import { getOrientationAsync, Orientation, addOrientationChangeListener, removeOrientationChangeListener } from "expo-screen-orientation";
+import { Orientation } from "expo-screen-orientation";
 
 interface SettingsModalProps {
     deviceType: DeviceType;
+
+    screenOrientation: Orientation;
 
     isModalVisible: boolean;
     setModalVisible: (value: boolean) => void;
@@ -33,6 +35,7 @@ interface SettingsModalProps {
 
 function SettingsModal({
     deviceType,
+    screenOrientation,
 
     isModalVisible,
     setModalVisible,
@@ -53,23 +56,6 @@ function SettingsModal({
 
     const [selectedOption, setSelectedOption] = useState<OptionsChangeableColors>(OptionsChangeableColors.BallColor);
     const [selectedOptionValue, setSelectedOptionValue] = useState<HsvColor>(toHsv(ballColor));
-    const [screenOrientation, setScreenOrientation] = useState<Orientation>();
-
-    // Handle orientation change
-    useEffect(() => {
-        const handleOrientationChange = async () => {
-            const orientation = await getOrientationAsync();
-            setScreenOrientation(orientation);
-        };
-
-        const listener = addOrientationChangeListener(handleOrientationChange);
-
-        handleOrientationChange();
-
-        return () => {
-            removeOrientationChangeListener(listener);
-        };
-    }, []);
 
     // Handle ColorSelection option
     const handleOptionSelection = (option: OptionsChangeableColors) => {
@@ -116,11 +102,34 @@ function SettingsModal({
         }
     }, [selectedOptionValue])
 
+    // Get modal dimensions based on device and screen orientation
+    const getModalDimensions = (side: 'Width' | 'Height') => {
+
+        let modalWidth = 50;
+        let modalHeight = 50;
+
+        if (isVerticalOrientation(screenOrientation)) {
+            modalHeight = deviceType === DeviceType.TABLET ? 70 : 85;
+            modalWidth = deviceType === DeviceType.TABLET ? 70 : 75;
+        }
+        else {
+            modalWidth = 70;
+            modalHeight = 80;
+        }
+
+        switch (side) {
+            case "Height":
+                return modalHeight;
+
+            case "Width":
+                return modalWidth;
+        }
+    } 
 
     const dynamicStyles = StyleSheet.create({
         modalViewSize: {
-            width: isVerticalOrientation(screenOrientation) ? '50%' : '70%',
-            height: isVerticalOrientation(screenOrientation) ? '50%' : '80%',
+            width: `${getModalDimensions('Width')}%`,
+            height: `${getModalDimensions('Height')}%`,
             flexDirection: isVerticalOrientation(screenOrientation) ? 'column' : 'row',
         },
         modalSectionSize: {
@@ -215,7 +224,7 @@ function SettingsModal({
     )
 }
 
-function isVerticalOrientation(orientation: Orientation) {
+export function isVerticalOrientation(orientation: Orientation) {
     return (orientation === Orientation.PORTRAIT_UP || orientation === Orientation.PORTRAIT_DOWN);
 }
 
