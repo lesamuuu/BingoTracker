@@ -1,19 +1,32 @@
 import Slider from "@react-native-community/slider";
-import { Modal, View, TouchableOpacity, StyleSheet, Text } from "react-native";
-import { ColorPicker, TriangleColorPicker, fromHsv, toHsv } from "react-native-color-picker";
+import { Modal, View, TouchableOpacity, StyleSheet, Text, TextInput, TouchableWithoutFeedback, Keyboard } from "react-native";
+import { TriangleColorPicker, fromHsv, toHsv } from "react-native-color-picker";
 import { HsvColor } from "react-native-color-picker/dist/typeHelpers";
 import STRINGS from "../Constants/Strings";
 import Divider from "../Components/Divider";
 import { useEffect, useState } from "react";
+import ColorSelection from "../Components/ColorSelection";
+import OptionsChangeableColors from "./Enums/OptionsChangeableColor";
+import { DeviceType } from "expo-device";
+import SIZES from "../Constants/Sizes";
+import COLORS from "../Constants/Colors";
+import { Orientation } from "expo-screen-orientation";
+import ISettingsModalPropsOnClose from "./ISettingsModalPropsOnClose";
+import ISettingsProps from "./ISettingsProps";
 import _ from 'lodash'
 
-
 interface SettingsModalProps {
+    deviceType: DeviceType;
+
+    screenOrientation: Orientation;
+
     isModalVisible: boolean;
-    setModalVisible: (value: boolean) => void;
+    handleModalVisibleChange: (props: ISettingsModalPropsOnClose) => void;
+
+    ballsQuantity: number;
 
     ballSize: number;
-    setBallSize: (value: number) => void;
+    handleBallSizeChange: (value: number) => void;
 
     ballColor: string;
     handleBallColorChange: (hexColor: string) => void;
@@ -25,57 +38,17 @@ interface SettingsModalProps {
     handleBackgroundColorChange: (hexColor: string) => void;
 }
 
-const ColorSelection = ({ options, selectedOption, onSelectOption }) => {
-    return (
-        <View>
-            {options.map(option => (
-                <TouchableOpacity
-                    key={option}
-                    style={[
-                        styles1.optionButton,
-                        option === selectedOption && styles1.selectedOptionButton
-                    ]}
-                    onPress={() => onSelectOption(option)}
-                >
-                    <Text style={styles1.optionText}>{option}</Text>
-                </TouchableOpacity>
-            ))}
-        </View>
-    );
-};
-
-const styles1 = StyleSheet.create({
-    container: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    optionButton: {
-        padding: 10,
-        marginBottom: 10,
-        backgroundColor: '#eee',
-        borderRadius: 5,
-    },
-    selectedOptionButton: {
-        backgroundColor: 'lightblue',
-    },
-    optionText: {
-        fontSize: 16,
-    },
-});
-
-enum OptionsChangableColors {
-    BallColor = 'Ball Color',
-    NumberColor = 'Number Color',
-    BackgroundColor = 'Background Color',
-}
-
 function SettingsModal({
+    deviceType,
+    screenOrientation,
+
     isModalVisible,
-    setModalVisible,
+    handleModalVisibleChange,
+
+    ballsQuantity,
 
     ballSize,
-    setBallSize,
+    handleBallSizeChange,
 
     ballColor,
     handleBallColorChange,
@@ -88,27 +61,105 @@ function SettingsModal({
 
 }: SettingsModalProps) {
 
-    const [selectedOption, setSelectedOption] = useState<OptionsChangableColors>(OptionsChangableColors.BallColor);
-    const [selectedOptionValue, setSelectedOptionValue] = useState<HsvColor>(toHsv(ballColor));
+    // Default props on close (just closes the modal)
+    const defaultPropsOnClose: ISettingsModalPropsOnClose = {
+        isVisible: false,
+        storeChanges: false,
+        saveChangesNeedResetAlert: false,
+        settingsProps: null,
+    }
 
+    const [selectedColorOption, setSelectedColorOption] = useState<OptionsChangeableColors>(OptionsChangeableColors.BallColor);
+    const [selectedColorOptionValue, setSelectedColorOptionValue] = useState<HsvColor>(toHsv(ballColor));
 
-    const optionsChangableColors = ['Ball Color', 'Number Color', 'Background Color'];
+    const [newBallsQuantity, setNewBallsQuantity] = useState<number>(ballsQuantity);
 
-    const handleOptionSelection = (option: OptionsChangableColors) => {
+    const [previousSettingsProps, setPreviousSettingsProps] = useState<ISettingsProps>();
+
+    const [modalPropsOnClose, setModalPropsOnClose] = useState<ISettingsModalPropsOnClose>(defaultPropsOnClose);
+
+    // Screenshot of the actual Settings Props
+    const getActualSettingsProps = () =>{
+        const actualSettingsProps = {
+            BallsQuantity: ballsQuantity,
+            BallsSize: ballSize,
+            BallsColor: ballColor,
+            BallsNumberColor: ballNumberColor,
+            BackgroundColor: backgroundColor
+        }
+        return actualSettingsProps;
+    }
+
+    // Handle default values and refresh previousSettingsProps on modal visibility change 
+    useEffect(() => {
+        setNewBallsQuantity(ballsQuantity);
+        setModalPropsOnClose(defaultPropsOnClose);
+
+        const PreviousSettingsProps: ISettingsProps = getActualSettingsProps();
+        setPreviousSettingsProps(PreviousSettingsProps);
+    }, [isModalVisible])
+
+    // Handle props on modal close based on Previous SettingsProps and new SettingsProps
+    useEffect(() => {
+        if(!previousSettingsProps) return;
+
+        // New Settings Props calculated with actual data
+        const NewSettingsProps: ISettingsProps = getActualSettingsProps();
+        NewSettingsProps.BallsQuantity = newBallsQuantity;
+
+        if(!_.isEqual(NewSettingsProps, previousSettingsProps)){
+            // There are differences between old props and new props, override ModalPropsOnClose
+            const newModalPropsonClose = {...modalPropsOnClose};
+            newModalPropsonClose.storeChanges = true;
+            newModalPropsonClose.settingsProps = NewSettingsProps;
+
+            // Save Changes Need Reset only is triggered when balls quantity has changed
+            if(newModalPropsonClose.settingsProps.BallsQuantity !== previousSettingsProps.BallsQuantity){
+                newModalPropsonClose.saveChangesNeedResetAlert = true;
+            }
+            else{
+                newModalPropsonClose.saveChangesNeedResetAlert = false;
+            }
+
+            setModalPropsOnClose(newModalPropsonClose);
+        }
+        else{
+            setModalPropsOnClose(defaultPropsOnClose);
+        }
+    }, [
+        newBallsQuantity,
+        ballSize,
+        ballColor,
+        ballNumberColor,
+        backgroundColor
+    ])
+
+    // Handle ball quantity 
+    const handleBallsQuantityChangeLocal = (quantity: string) => {
+
+        // Manages to only accept absolute numeric values
+        const filteredNumbers = quantity.replace(/[^0-9]/g, '');
+        const valueNumber = Math.abs(Number(filteredNumbers));
+
+        setNewBallsQuantity(valueNumber);
+    }
+
+    // Handle ColorSelection option
+    const handleOptionSelection = (option: OptionsChangeableColors) => {
         switch (option) {
-            case OptionsChangableColors.BallColor:
-                setSelectedOptionValue(toHsv(ballColor));
-                setSelectedOption(option);
+            case OptionsChangeableColors.BallColor:
+                setSelectedColorOptionValue(toHsv(ballColor));
+                setSelectedColorOption(option);
                 break;
 
-            case OptionsChangableColors.NumberColor:
-                setSelectedOptionValue(toHsv(ballNumberColor));
-                setSelectedOption(option);
+            case OptionsChangeableColors.NumberColor:
+                setSelectedColorOptionValue(toHsv(ballNumberColor));
+                setSelectedColorOption(option);
                 break;
 
-            case OptionsChangableColors.BackgroundColor:
-                setSelectedOptionValue(toHsv(backgroundColor));
-                setSelectedOption(option);
+            case OptionsChangeableColors.BackgroundColor:
+                setSelectedColorOptionValue(toHsv(backgroundColor));
+                setSelectedColorOption(option);
                 break;
 
             default:
@@ -116,91 +167,166 @@ function SettingsModal({
         }
     }
 
-    /*
-    const handleNumberColorChangeDebounced = _.debounce((color) => {
-        handleBallNumberColorChange(color);
-    }, 1000); // Adjust the debounce delay as needed
-    */
+    // Handle ColorSelection option
+    useEffect(() => {
+        const hexColor = fromHsv(selectedColorOptionValue);
 
-    useEffect( () => {
-
-        const hexColor = fromHsv(selectedOptionValue);
-
-        switch (selectedOption) {
-            case OptionsChangableColors.BallColor:
+        switch (selectedColorOption) {
+            case OptionsChangeableColors.BallColor:
                 handleBallColorChange(hexColor)
                 break;
 
-            case OptionsChangableColors.NumberColor:
+            case OptionsChangeableColors.NumberColor:
                 handleBallNumberColorChange(hexColor)
                 break;
 
-            case OptionsChangableColors.BackgroundColor:
+            case OptionsChangeableColors.BackgroundColor:
                 handleBackgroundColorChange(hexColor)
                 break;
 
             default:
                 break;
         }
-    }, [selectedOptionValue])
+    }, [selectedColorOptionValue])
+
+    // Get modal dimensions based on device and screen orientation
+    const getModalDimensions = (side: 'Width' | 'Height') => {
+
+        let modalWidth = 50;
+        let modalHeight = 50;
+
+        if (isVerticalOrientation(screenOrientation)) {
+            modalHeight = deviceType === DeviceType.TABLET ? 70 : 85;
+            modalWidth = deviceType === DeviceType.TABLET ? 70 : 75;
+        }
+        else {
+            modalWidth = 70;
+            modalHeight = 80;
+        }
+
+        switch (side) {
+            case "Height":
+                return modalHeight;
+
+            case "Width":
+                return modalWidth;
+        }
+    }
+
+    const dynamicStyles = StyleSheet.create({
+        modalViewSize: {
+            width: `${getModalDimensions('Width')}%`,
+            height: `${getModalDimensions('Height')}%`,
+            flexDirection: isVerticalOrientation(screenOrientation) ? 'column' : 'row',
+        },
+        modalSectionSize: {
+            height: isVerticalOrientation(screenOrientation) ? 'auto' : '100%',
+            width: isVerticalOrientation(screenOrientation) ? '100%' : '50%',
+        },
+        inputBallsQuantitySize: {
+            height: (deviceType === DeviceType.TABLET ? SIZES.SettingsSectionTitleTablet : SIZES.SettingsSectionTitlePhone) + 20,
+            fontSize: deviceType === DeviceType.TABLET ? SIZES.SettingsSectionTitleTablet : SIZES.SettingsSectionTitlePhone,
+        },
+        textStyle: {
+            fontSize: deviceType === DeviceType.TABLET ? SIZES.SettingsSectionTitleTablet : SIZES.SettingsSectionTitlePhone,
+        },
+        sectionTitle: {
+            fontSize: deviceType === DeviceType.TABLET ? SIZES.SettingsSectionTitleTablet : SIZES.SettingsSectionTitlePhone,
+            fontWeight: 'bold',
+            marginBottom: '2%',
+        },
+    });
 
     return (
         <Modal
             animationType="slide"
             transparent={true}
             visible={isModalVisible}
+            supportedOrientations={['portrait', 'landscape']}
             onRequestClose={() => {
-                setModalVisible(false);
+                handleModalVisibleChange(modalPropsOnClose);
             }}
         >
-            <View style={styles.centeredView}>
 
-                <View style={styles.modalView}>
+            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+                <View style={styles.centeredView}>
+                    <View style={[styles.modalView, dynamicStyles.modalViewSize]}>
+                        <View style={[styles.modalSection, dynamicStyles.modalSectionSize]}>
 
-                    <View style={styles.modalSection}>
-                        <Text style={styles.sectionTitle}>{STRINGS.SettingsModal.BallSize}: {ballSize}</Text>
+                            <Text style={dynamicStyles.sectionTitle}>{STRINGS.SettingsModal.BallQuantity}</Text>
 
-                        <Slider
-                            style={{ width: '100%' }}
-                            minimumValue={60}
-                            lowerLimit={60}
-                            maximumValue={150}
-                            upperLimit={150}
-                            step={10}
-                            value={ballSize}
-                            onValueChange={setBallSize}
-                        />
+                            <TextInput style={[styles.inputBallsQuantity, dynamicStyles.inputBallsQuantitySize]}
+                                keyboardType="numeric"
+                                onChangeText={handleBallsQuantityChangeLocal}
+                                value={`${newBallsQuantity}`}
+                            />
+
+                            <Divider color="grey" orientation="horizontal" dividerStyle={{ marginVertical: '2%' }} />
+
+                            <Text style={dynamicStyles.sectionTitle}>{STRINGS.SettingsModal.BallSize}: {ballSize}</Text>
+
+                            <Slider
+                                style={{ width: '100%' }}
+                                minimumValue={30}
+                                lowerLimit={30}
+                                maximumValue={120}
+                                upperLimit={120}
+                                step={5}
+                                value={ballSize}
+                                onValueChange={handleBallSizeChange}
+                            />
+
+                            {!isVerticalOrientation(screenOrientation) && (
+                                <TouchableOpacity
+                                    onPress={() => handleModalVisibleChange(modalPropsOnClose)}
+                                    style={styles.button}>
+                                    <Text style={[styles.textStyle, dynamicStyles.textStyle]}>{STRINGS.Generics.Close}</Text>
+                                </TouchableOpacity>
+                            )}
+                        </View>
+
+                        <Divider dividerStyle={{ marginHorizontal: '1%', marginVertical: '2%' }} color="grey" orientation={isVerticalOrientation(screenOrientation) ? 'horizontal' : 'vertical'} />
+
+                        <View style={[styles.modalSection, dynamicStyles.modalSectionSize, { flexGrow: 1 }]}>
+                            <View style={{ alignItems: 'center' }}>
+                                <Text style={dynamicStyles.sectionTitle}>{STRINGS.SettingsModal.Colors}</Text>
+                            </View>
+
+                            <ColorSelection
+                                style={{ width: '100%' }}
+                                deviceType={deviceType}
+                                onSelectOption={handleOptionSelection}
+                                selectedOption={selectedColorOption}
+                            />
+
+                            <View style={{ flexGrow: 1, width: '100%' }}>
+                                <TriangleColorPicker
+                                    onColorChange={color => setSelectedColorOptionValue(color)}
+                                    style={{ flex: 1 }}
+                                    hideSliders
+                                    color={selectedColorOptionValue}
+                                />
+                            </View>
+
+                        </View>
+
+                        {isVerticalOrientation(screenOrientation) && (
+                            <TouchableOpacity
+                                onPress={() => handleModalVisibleChange(modalPropsOnClose)}
+                                style={styles.button}
+                            >
+                                <Text style={[styles.textStyle, dynamicStyles.textStyle]}>{STRINGS.Generics.Close}</Text>
+                            </TouchableOpacity>
+                        )}
                     </View>
-
-                    <Divider color="grey" />
-
-                    <View style={[styles.modalSection, styles.modalSectionColorPicker]}>
-                        <Text style={styles.sectionTitle}>COLORS</Text>
-
-                        <ColorSelection
-                            options={optionsChangableColors}
-                            onSelectOption={handleOptionSelection}
-                            selectedOption={selectedOption}
-                        />
-
-                        <TriangleColorPicker
-                            onColorChange={color => setSelectedOptionValue(color)}
-                            //onColorSelected={color => setSelectedOptionValue(toHsv(color))}
-                            style={{ flex: 1 }}
-                            hideSliders
-                            color={selectedOptionValue}
-                        />
-                    </View>
-
-                    <TouchableOpacity
-                        onPress={() => setModalVisible(false)}
-                        style={styles.button}>
-                        <Text style={styles.textStyle}>{STRINGS.Generics.Cancel}</Text>
-                    </TouchableOpacity>
                 </View>
-            </View>
+            </TouchableWithoutFeedback>
         </Modal>
     )
+}
+
+export function isVerticalOrientation(orientation: Orientation) {
+    return (orientation === Orientation.PORTRAIT_UP || orientation === Orientation.PORTRAIT_DOWN);
 }
 
 const styles = StyleSheet.create({
@@ -210,14 +336,11 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     modalView: {
-        width: '50%',
-        height: '50%',
-
         backgroundColor: 'white',
         borderRadius: 20,
-        padding: 35,
+        padding: '3%',
         alignItems: 'center',
-        shadowColor: '#000',
+        shadowColor: COLORS.Shadow,
         shadowOffset: {
             width: 0,
             height: 2
@@ -229,37 +352,30 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignContent: 'center',
     },
-    modalHeader: {
-
-    },
     modalSection: {
-        justifyContent: 'center',
         alignItems: 'center',
-        width: '100%',
+        justifyContent: 'space-between',
     },
-    modalSectionColorPicker: {
-        alignItems: 'stretch',
-        height: '80%',
+    inputBallsQuantity: {
+        width: '30%',
+        textAlign: 'center',
+        borderColor: 'gray',
+        borderWidth: 1,
+        borderRadius: 10,
     },
     button: {
         borderRadius: 20,
-        padding: 10,
-        elevation: 2,
+        padding: '2%',
+        marginTop: '1%',
         width: '50%',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#2196F3',
+        backgroundColor: COLORS.ModalButton,
     },
     textStyle: {
         color: 'white',
         fontWeight: 'bold',
         textAlign: 'center',
-        fontSize: 20
-    },
-    sectionTitle: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        marginBottom: 10,
     },
 });
 

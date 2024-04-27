@@ -1,47 +1,145 @@
-import { View, StyleSheet, TouchableOpacity, Alert, ScrollView, Text } from "react-native";
+import { View, StyleSheet, TouchableOpacity, Alert, ScrollView } from "react-native";
 import Ionicons from '@expo/vector-icons/Ionicons'
 import React, { useEffect, useState } from "react";
 import BallComponent from "../Components/Ball";
-import SettingsModal from "../Modals/SettingsModal";
-import NewBallModal from "../Modals/NewBallModal";
+import SettingsModal from "../Modals/settingsModal";
 import COLORS from "../Constants/Colors";
 import STRINGS from "../Constants/Strings";
+import * as Device from 'expo-device';
+import RecentBalls from "../Components/RecentBalls";
+import SIZES from "../Constants/Sizes";
+import { Orientation, addOrientationChangeListener, getOrientationAsync, removeOrientationChangeListener } from "expo-screen-orientation";
+import ISettingsModalPropsOnClose from "../Modals/ISettingsModalPropsOnClose";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import ISettingsProps from "../Modals/ISettingsProps";
+
+interface BallProps {
+    ballNumber: number;
+    isPressed: boolean;
+}
 
 const HomeScreen = () => {
 
-    const [balls, setBalls] = useState<number[]>([]);
-    const [ballSize, setBallSize] = useState<number>(100);
+    const [deviceType, setDeviceType] = useState<Device.DeviceType>();
+    const [screenOrientation, setScreenOrientation] = useState<Orientation>();
 
+    const [balls, setBalls] = useState<BallProps[]>([]);
+
+    const [selectedBalls, setSelectedBalls] = useState<number[]>([]);
+
+    const [ballsQuantity, setBallsQuantity] = useState<number>(75);
+
+    const [ballSize, setBallSize] = useState<number>(SIZES.BallSizeDefaultTablet);
     const [ballColor, setBallColor] = useState<string>(COLORS.defaultBall);
-
     const [ballNumberColor, setBallNumberColor] = useState<string>(COLORS.defaultBackground);
     const [backgroundColor, setBackgroundColor] = useState<string>(COLORS.defaultBackground);
 
-    const [newNumber, setNewNumber] = useState<string>();
-    const [isAddNumberEnabled, setIsAddNumberEnabled] = useState<boolean>(true);
-
-
     const [isSettingsModalVisible, setIsSettingsModalVisible] = useState(false);
-    const [isNewBallModalVisible, setIsNewBallModalVisible] = useState(false);
 
-    const handleNewNumberChange = (newNumber: string) => {
-        const numericValue = newNumber.replace(/[^0-9]/g, '');
-        setNewNumber(numericValue);
+    // Handle device type
+    useEffect(() => {
+        const getDeviceType = async () => {
+            const deviceTypeRetrieved = await Device.getDeviceTypeAsync();
+            setDeviceType(deviceTypeRetrieved);
 
-        if (balls.includes(Number(numericValue))) {
-            setIsAddNumberEnabled(false);
-            console.log(newNumber);
-        }
-        else {
-            setIsAddNumberEnabled(true);
+            setBallSize(deviceTypeRetrieved === Device.DeviceType.TABLET ? SIZES.BallSizeDefaultTablet : SIZES.BallSizeDefaultPhone);
+        };
+
+        getDeviceType();
+    }, []);
+
+    // Handle orientation change
+    useEffect(() => {
+        const handleOrientationChange = async () => {
+            const orientation = await getOrientationAsync();
+            setScreenOrientation(orientation);
+        };
+
+        const listener = addOrientationChangeListener(handleOrientationChange);
+
+        handleOrientationChange();
+
+        return () => {
+            removeOrientationChangeListener(listener);
+        };
+    }, []);
+
+    // Store settings in local storage
+    const storeSettings = async (settingsProps: ISettingsProps) => {
+        try {
+            console.log('Storing executing')
+            const jsonValue = JSON.stringify(settingsProps);
+            await AsyncStorage.setItem('settings', jsonValue);
+
+            console.log('Stored successfully')
+        } catch (exception) {
+            // saving error
+            console.error("Failed to save settings:", exception);
         }
     }
 
-    const handleAddNewBall = () => {
-        const newBalls: number[] = [...balls, Number(newNumber)];
+    // Sets props to stored settings in local storage
+    useEffect(() => {
+        const getStoredSettings = async () => {
+            try {
+                const retrievedSettingsJSON = await AsyncStorage.getItem('settings');
+                const parsed = retrievedSettingsJSON != null ? JSON.parse(retrievedSettingsJSON) : null;
+                console.log('retrieved parsed: ', parsed);
+
+                return parsed;
+
+            } catch (exception) {
+                console.error('Couldnt retrieve settings', exception);
+
+                return null;
+            }
+        }
+
+        const loadStoredSettings = async () => {
+
+            const retrievedSettings: ISettingsProps = await getStoredSettings();
+
+            if (retrievedSettings) {
+                setBallsQuantity(retrievedSettings.BallsQuantity);
+                setBallSize(retrievedSettings.BallsSize);
+                setBallColor(retrievedSettings.BallsColor);
+                setBallNumberColor(retrievedSettings.BallsNumberColor);
+                setBackgroundColor(retrievedSettings.BackgroundColor);
+            }
+        }
+
+        loadStoredSettings();
+    }, []);
+
+    // Reset Ball Status when Balls Quantity Changes
+    useEffect(() => {
+        resetBallsStatus();
+    }, [ballsQuantity])
+
+    const resetBallsStatus = () => {
+        const newBalls: BallProps[] = [];
+        for (let i = 1; i <= ballsQuantity; i++) {
+            newBalls.push({ ballNumber: i, isPressed: false });
+        }
         setBalls(newBalls);
-        setNewNumber('');
-        setIsNewBallModalVisible(false);
+
+        setSelectedBalls([]);
+    }
+
+    const handleBallPress = (ballNumber: number) => {
+        const updatedBalls = [...balls];
+        updatedBalls[ballNumber - 1] = { ballNumber: ballNumber, isPressed: !updatedBalls[ballNumber - 1].isPressed };
+
+        setBalls(updatedBalls);
+
+        let updatedSelectedBalls = [...selectedBalls];
+        if (updatedSelectedBalls.includes(ballNumber)) {
+            updatedSelectedBalls = updatedSelectedBalls.filter(ball => ball !== ballNumber);
+        } else {
+            updatedSelectedBalls.push(ballNumber);
+        }
+
+        setSelectedBalls(updatedSelectedBalls);
     }
 
     const handleResetButton = () => {
@@ -51,9 +149,9 @@ const HomeScreen = () => {
             [
                 { text: STRINGS.Alerts.Generic.Cancel, style: 'cancel' },
                 {
-                    text: STRINGS.Alerts.Generic.Delete,
+                    text: STRINGS.Alerts.Generic.Reset,
                     onPress: () => {
-                        setBalls([]);
+                        resetBallsStatus();
                     }
                 }
             ],
@@ -61,22 +159,45 @@ const HomeScreen = () => {
         )
     }
 
-    const handleBallPress = (ballNumber: number) => {
-        Alert.alert(
-            STRINGS.Alerts.DeleteBall.Title,
-            STRINGS.Alerts.DeleteBall.Text,
-            [
-                { text: STRINGS.Alerts.Generic.Cancel, style: 'cancel' },
-                {
-                    text: STRINGS.Alerts.Generic.Delete,
-                    onPress: () => {
-                        const updatedBalls = balls.filter(BallNumber => BallNumber != ballNumber);
-                        setBalls(updatedBalls);
+    const handleSettingsModalVisibility = (props: ISettingsModalPropsOnClose) => {
+
+        // Alert for saving changes
+        const handleSaveChangesNeedResetRequest = (settingsProps: ISettingsProps) => {
+            Alert.alert(
+                STRINGS.Alerts.SaveChangesNeedReset.Title,
+                STRINGS.Alerts.SaveChangesNeedReset.Text,
+                [
+                    {
+                        text: STRINGS.Alerts.Generic.DiscardChanges,
+                        style: 'cancel',
+                        onPress: () => {
+                            const settingsDiscardingBallsQuantity = {
+                                ...settingsProps,
+                                BallsQuantity: ballsQuantity
+                            };
+                            storeSettings(settingsDiscardingBallsQuantity)
+                        }
+                    },
+                    {
+                        text: STRINGS.Alerts.Generic.Reset,
+                        onPress: () => {
+                            setBallsQuantity(settingsProps.BallsQuantity);
+                            storeSettings(settingsProps)
+                        }
                     }
-                }
-            ],
-            { cancelable: true }
-        )
+                ],
+                { cancelable: true }
+            )
+        }
+
+        if (props.saveChangesNeedResetAlert) {
+            handleSaveChangesNeedResetRequest(props.settingsProps);
+        }
+        else if(props.storeChanges){
+            storeSettings(props.settingsProps);
+        }
+
+        setIsSettingsModalVisible(props.isVisible);
     }
 
     return (
@@ -84,43 +205,49 @@ const HomeScreen = () => {
             <View style={styles.topBarContainer}>
 
                 <TouchableOpacity onPress={handleResetButton}>
-                    <Ionicons name="refresh" style={{ fontSize: 40, color: 'black' }} />
+                    <Ionicons name="refresh" style={{ fontSize: SIZES.HeaderIconSize, color: 'black' }} />
                 </TouchableOpacity>
 
                 <TouchableOpacity onPress={() => setIsSettingsModalVisible(true)}>
-                    <Ionicons name="settings-outline" style={{ fontSize: 40, color: 'black' }} />
-                </TouchableOpacity>
-
-                <TouchableOpacity onPress={() => setIsNewBallModalVisible(true)}>
-                    <Ionicons name="add-circle-outline" style={{ fontSize: 40, color: 'black' }} />
+                    <Ionicons name="settings-outline" style={{ fontSize: SIZES.HeaderIconSize, color: 'black' }} />
                 </TouchableOpacity>
             </View>
 
-            {balls.length > 0 ? (
-                <ScrollView>
-                    <View style={styles.ballsContainer}>
+            <ScrollView>
+                <View style={styles.ballsContainer}>
 
-                        {balls.map(ballNumber => (
-                            <BallComponent
-                                key={ballNumber}
-                                ballNumber={ballNumber}
-                                ballNumberColor={ballNumberColor}
-                                ballSize={ballSize}
-                                ballColor={ballColor}
-                                handleOnPress={() => handleBallPress(ballNumber)}
-                            />
-                        ))}
-                    </View>
-                </ScrollView>
-
-            ) : (
-                <View style={styles.centeredView}>
-                    <Text>{STRINGS.HomeScreen.NoBalls}</Text>
-                    <Ionicons name="add-circle-outline" style={{ fontSize: 40, color: 'black' }} />
+                    {balls.map(ballNumber => (
+                        <BallComponent
+                            key={ballNumber.ballNumber}
+                            ballNumber={ballNumber.ballNumber}
+                            ballNumberColor={ballNumberColor}
+                            ballSize={ballSize}
+                            ballColor={ballColor}
+                            isPressed={ballNumber.isPressed}
+                            handleOnPress={() => handleBallPress(ballNumber.ballNumber)}
+                        />
+                    ))}
                 </View>
-            )}
+            </ScrollView>
+
+            <RecentBalls
+                ScreenOrientation={screenOrientation}
+                deviceType={deviceType}
+                BallColor={ballColor}
+                BallNumberColor={ballNumberColor}
+                BallSize={ballSize}
+                SelectedBalls={selectedBalls}
+            />
 
             <SettingsModal
+                deviceType={deviceType}
+                screenOrientation={screenOrientation}
+
+                ballsQuantity={ballsQuantity}
+
+                ballSize={ballSize}
+                handleBallSizeChange={setBallSize}
+
                 ballColor={ballColor}
                 handleBallColorChange={setBallColor}
 
@@ -130,22 +257,8 @@ const HomeScreen = () => {
                 backgroundColor={backgroundColor}
                 handleBackgroundColorChange={setBackgroundColor}
 
-                ballSize={ballSize}
-                setBallSize={setBallSize}
-
                 isModalVisible={isSettingsModalVisible}
-                setModalVisible={setIsSettingsModalVisible}
-            />
-
-            <NewBallModal
-                isModalVisible={isNewBallModalVisible}
-                setModalVisible={setIsNewBallModalVisible}
-
-                newNumber={newNumber}
-                handleNewNumberChange={handleNewNumberChange}
-
-                isAddNumberEnabled={isAddNumberEnabled}
-                handleAddNewBall={handleAddNewBall}
+                handleModalVisibleChange={handleSettingsModalVisibility}
             />
 
         </View>
@@ -170,20 +283,22 @@ const styles = StyleSheet.create({
         paddingVertical: '2%',
         backgroundColor: 'white',
     },
-    centeredView: {
-        flex: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingHorizontal: '10%',
-
-        borderColor: 'red',
-        borderWidth: 1,
-    },
     ballsContainer: {
         flexDirection: 'row',
         flexWrap: 'wrap',
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    recentBallsContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        paddingHorizontal: '3%',
+        width: '100%'
+    },
+    recentBallSection: {
+        justifyContent: 'center',
+        alignItems: 'center',
+        flexDirection: 'column',
     },
 });
 
