@@ -18,6 +18,8 @@ const STRINGS = {
         AddBall: 'Añadir Bola'
     },
     SettingsModal: {
+        BallQuantity: 'Cantidad de bolas',
+
         BallSize: 'Tamaño de las bolas',
 
         Colors: 'Colores',
@@ -28,14 +30,20 @@ const STRINGS = {
         Generic: {
             Cancel: 'Cancelar',
             Delete: 'Eliminar',
+            Reset: 'Resetear',
+            DiscardChanges: 'Descartar cambios',
         },
         Reset: {
             Title: 'Resetear el tablero?',
-            Text: 'Seguro que quieres resetear el tablero? Esto eliminará todas las bolas'
+            Text: 'Seguro que quieres resetear el tablero? Esto eliminará el estado de todas las bolas',
+        },
+        SaveChangesNeedReset: {
+            Title: 'Resetear el tablero?',
+            Text: 'Para aplicar uno de los cambios, se necesita resetear el tablero. Esto eliminará el estado de todas las bolas',
         },
         DeleteBall: {
             Title: 'Eliminar bola?',
-            Text: 'Seguro que quieres eliminar esta bola?'
+            Text: 'Seguro que quieres eliminar esta bola?',
         }
     }
 }
