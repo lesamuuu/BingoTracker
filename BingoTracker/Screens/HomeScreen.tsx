@@ -9,7 +9,9 @@ import * as Device from 'expo-device';
 import RecentBalls from "../Components/RecentBalls";
 import SIZES from "../Constants/Sizes";
 import { Orientation, addOrientationChangeListener, getOrientationAsync, removeOrientationChangeListener } from "expo-screen-orientation";
-
+import ISettingsModalPropsOnClose from "../Modals/ISettingsModalPropsOnClose";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import ISettingsProps from "../Modals/ISettingsProps";
 
 interface BallProps {
     ballNumber: number;
@@ -25,10 +27,10 @@ const HomeScreen = () => {
 
     const [selectedBalls, setSelectedBalls] = useState<number[]>([]);
 
+    const [ballsQuantity, setBallsQuantity] = useState<number>(75);
+
     const [ballSize, setBallSize] = useState<number>(SIZES.BallSizeDefaultTablet);
-
     const [ballColor, setBallColor] = useState<string>(COLORS.defaultBall);
-
     const [ballNumberColor, setBallNumberColor] = useState<string>(COLORS.defaultBackground);
     const [backgroundColor, setBackgroundColor] = useState<string>(COLORS.defaultBackground);
 
@@ -62,14 +64,63 @@ const HomeScreen = () => {
         };
     }, []);
 
-    // Reset Ball Status
+    const storeSettings = async (settingsProps: ISettingsProps) => {
+        try {
+            console.log('Storing executing')
+            const jsonValue = JSON.stringify(settingsProps);
+            await AsyncStorage.setItem('settings', jsonValue);
+
+            console.log('Stored successfully')
+        } catch (exception) {
+            // saving error
+            console.error("Failed to save settings:", exception);
+        }
+    }
+
+    useEffect(() => {
+
+        //storeSettings({BallsQuantity: 20, BallsSize: 40, BallsColor: 'red', BallsNumberColor: 'black', BackgroundColor: 'yellow'});
+
+        const getStoredSettings = async () => {
+            try {
+                const retrievedSettingsJSON = await AsyncStorage.getItem('settings');
+                const parsed = retrievedSettingsJSON != null ? JSON.parse(retrievedSettingsJSON) : null;
+                console.log('retrieved parsed: ', parsed);
+
+                return parsed;
+
+            } catch (exception) {
+                console.error('Couldnt retrieve settings', exception);
+
+                return null;
+            }
+        }
+
+        const loadStoredSettings = async () => {
+
+            const retrievedSettings: ISettingsProps = await getStoredSettings();
+
+            if (retrievedSettings) {
+                setBallsQuantity(retrievedSettings.BallsQuantity);
+                setBallSize(retrievedSettings.BallsSize);
+                setBallColor(retrievedSettings.BallsColor);
+                setBallNumberColor(retrievedSettings.BallsNumberColor);
+                setBackgroundColor(retrievedSettings.BackgroundColor);
+            }
+        }
+
+        loadStoredSettings();
+    }, []);
+
+
+    // Reset Ball Status when Balls Quantity Changes
     useEffect(() => {
         resetBallsStatus();
-    }, [])
+    }, [ballsQuantity])
 
     const resetBallsStatus = () => {
         const newBalls: BallProps[] = [];
-        for (let i = 1; i <= 50; i++) {
+        for (let i = 1; i <= ballsQuantity; i++) {
             newBalls.push({ ballNumber: i, isPressed: false });
         }
         setBalls(newBalls);
@@ -100,7 +151,7 @@ const HomeScreen = () => {
             [
                 { text: STRINGS.Alerts.Generic.Cancel, style: 'cancel' },
                 {
-                    text: STRINGS.Alerts.Generic.Delete,
+                    text: STRINGS.Alerts.Generic.Reset,
                     onPress: () => {
                         resetBallsStatus();
                     }
@@ -108,6 +159,47 @@ const HomeScreen = () => {
             ],
             { cancelable: true }
         )
+    }
+
+
+
+    const handleSaveChangesNeedResetRequest = (settingsProps: ISettingsProps) => {
+        Alert.alert(
+            STRINGS.Alerts.SaveChangesNeedReset.Title,
+            STRINGS.Alerts.SaveChangesNeedReset.Text,
+            [
+                {
+                    text: STRINGS.Alerts.Generic.DiscardChanges,
+                    style: 'cancel',
+                    onPress: () => {
+                        const settingsDiscardingBallsQuantity = {
+                            ...settingsProps,
+                            BallsQuantity: ballsQuantity
+                        };
+                        storeSettings(settingsDiscardingBallsQuantity)
+                    }
+                },
+                {
+                    text: STRINGS.Alerts.Generic.Reset,
+                    onPress: () => {
+                        setBallsQuantity(settingsProps.BallsQuantity);
+                        storeSettings(settingsProps)
+                    }
+                }
+            ],
+            { cancelable: true }
+        )
+    }
+
+    const handleSettingsModalVisibility = (props: ISettingsModalPropsOnClose) => {
+        if (props.saveChangesNeedResetAlert) {
+            handleSaveChangesNeedResetRequest(props.settingsProps);
+        }
+        else if(props.storeChanges){
+            storeSettings(props.settingsProps);
+        }
+
+        setIsSettingsModalVisible(props.isVisible);
     }
 
     return (
@@ -154,7 +246,12 @@ const HomeScreen = () => {
             <SettingsModal
                 deviceType={deviceType}
                 screenOrientation={screenOrientation}
-                
+
+                ballsQuantity={ballsQuantity}
+
+                ballSize={ballSize}
+                handleBallSizeChange={setBallSize}
+
                 ballColor={ballColor}
                 handleBallColorChange={setBallColor}
 
@@ -164,11 +261,8 @@ const HomeScreen = () => {
                 backgroundColor={backgroundColor}
                 handleBackgroundColorChange={setBackgroundColor}
 
-                ballSize={ballSize}
-                setBallSize={setBallSize}
-
                 isModalVisible={isSettingsModalVisible}
-                setModalVisible={setIsSettingsModalVisible}
+                handleModalVisibleChange={handleSettingsModalVisibility}
             />
 
         </View>
