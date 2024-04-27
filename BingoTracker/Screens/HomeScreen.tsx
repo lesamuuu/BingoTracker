@@ -280,6 +280,7 @@ const styles = StyleSheet.create({
         width: '100%',
         marginBottom: '3%',
         paddingHorizontal: '10%',
+        paddingVertical: '2%',
         backgroundColor: 'white',
     },
     ballsContainer: {
