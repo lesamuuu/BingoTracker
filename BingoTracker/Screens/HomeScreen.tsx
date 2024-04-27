@@ -64,6 +64,7 @@ const HomeScreen = () => {
         };
     }, []);
 
+    // Store settings in local storage
     const storeSettings = async (settingsProps: ISettingsProps) => {
         try {
             console.log('Storing executing')
@@ -77,10 +78,8 @@ const HomeScreen = () => {
         }
     }
 
+    // Sets props to stored settings in local storage
     useEffect(() => {
-
-        //storeSettings({BallsQuantity: 20, BallsSize: 40, BallsColor: 'red', BallsNumberColor: 'black', BackgroundColor: 'yellow'});
-
         const getStoredSettings = async () => {
             try {
                 const retrievedSettingsJSON = await AsyncStorage.getItem('settings');
@@ -111,7 +110,6 @@ const HomeScreen = () => {
 
         loadStoredSettings();
     }, []);
-
 
     // Reset Ball Status when Balls Quantity Changes
     useEffect(() => {
@@ -161,37 +159,37 @@ const HomeScreen = () => {
         )
     }
 
-
-
-    const handleSaveChangesNeedResetRequest = (settingsProps: ISettingsProps) => {
-        Alert.alert(
-            STRINGS.Alerts.SaveChangesNeedReset.Title,
-            STRINGS.Alerts.SaveChangesNeedReset.Text,
-            [
-                {
-                    text: STRINGS.Alerts.Generic.DiscardChanges,
-                    style: 'cancel',
-                    onPress: () => {
-                        const settingsDiscardingBallsQuantity = {
-                            ...settingsProps,
-                            BallsQuantity: ballsQuantity
-                        };
-                        storeSettings(settingsDiscardingBallsQuantity)
-                    }
-                },
-                {
-                    text: STRINGS.Alerts.Generic.Reset,
-                    onPress: () => {
-                        setBallsQuantity(settingsProps.BallsQuantity);
-                        storeSettings(settingsProps)
-                    }
-                }
-            ],
-            { cancelable: true }
-        )
-    }
-
     const handleSettingsModalVisibility = (props: ISettingsModalPropsOnClose) => {
+
+        // Alert for saving changes
+        const handleSaveChangesNeedResetRequest = (settingsProps: ISettingsProps) => {
+            Alert.alert(
+                STRINGS.Alerts.SaveChangesNeedReset.Title,
+                STRINGS.Alerts.SaveChangesNeedReset.Text,
+                [
+                    {
+                        text: STRINGS.Alerts.Generic.DiscardChanges,
+                        style: 'cancel',
+                        onPress: () => {
+                            const settingsDiscardingBallsQuantity = {
+                                ...settingsProps,
+                                BallsQuantity: ballsQuantity
+                            };
+                            storeSettings(settingsDiscardingBallsQuantity)
+                        }
+                    },
+                    {
+                        text: STRINGS.Alerts.Generic.Reset,
+                        onPress: () => {
+                            setBallsQuantity(settingsProps.BallsQuantity);
+                            storeSettings(settingsProps)
+                        }
+                    }
+                ],
+                { cancelable: true }
+            )
+        }
+
         if (props.saveChangesNeedResetAlert) {
             handleSaveChangesNeedResetRequest(props.settingsProps);
         }
@@ -232,7 +230,6 @@ const HomeScreen = () => {
                 </View>
             </ScrollView>
 
-
             <RecentBalls
                 ScreenOrientation={screenOrientation}
                 deviceType={deviceType}
@@ -241,7 +238,6 @@ const HomeScreen = () => {
                 BallSize={ballSize}
                 SelectedBalls={selectedBalls}
             />
-
 
             <SettingsModal
                 deviceType={deviceType}
