@@ -84,7 +84,6 @@ const HomeScreen = () => {
             try {
                 const retrievedSettingsJSON = await AsyncStorage.getItem('settings');
                 const parsed = retrievedSettingsJSON != null ? JSON.parse(retrievedSettingsJSON) : null;
-                console.log('retrieved parsed: ', parsed);
 
                 return parsed;
 
